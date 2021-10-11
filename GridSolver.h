@@ -25,7 +25,6 @@ private:
   void          quickSortPoints(vector<Point*> &points, int subtreeLowIdx, int subtreeHighIdx, int depth);
   int           quickSortPartition(vector<Point*> &points, int low, int high, int depth);
   void          swap(vector<Point*> &points, int idxA, int idxB);
-  void          insertPointIntoTree(Point* &parent, Point* newPoint, int depth);
   void          processGridSolution(Point* node);
   list<Point*>  findNearestNeighbors(Point* &target);
   void          findNearestNeighbors(Point* &parent, Point* &target, int depth, list<Point*> &nearestNeighbors);

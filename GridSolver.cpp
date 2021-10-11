@@ -133,6 +133,9 @@ void GridSolver::quickSortPoints(vector<Point*> &points, int subtreeLowIdx, int 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// This is called by the quickSortPoints function to aid in the
+// quick-sort algorithm
+///////////////////////////////////////////////////////////////////////////////
 int GridSolver::quickSortPartition(vector<Point*> &points, int low, int high, int depth)
 {
   double pivot = points[high]->getCoordinate(depth % POINT_DIMENSIONS); //get either the x or the y coordinate based on tree depth
@@ -151,51 +154,13 @@ int GridSolver::quickSortPartition(vector<Point*> &points, int low, int high, in
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// This function swaps two Point* pointers in a vector given 2 indexes
+///////////////////////////////////////////////////////////////////////////////
 void GridSolver::swap(vector<Point*> &points, int idxA, int idxB)
 {
   Point* temp = points[idxA];
   points[idxA] = points[idxB];
   points[idxB] = temp;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// This takes a point and inserts it into a k-d tree //TODO: remove this function?
-///////////////////////////////////////////////////////////////////////////////
-void GridSolver::insertPointIntoTree(Point* &parent, Point* newPoint, int depth)
-{
-  /*if (parent->isNull())
-  {
-    parent = newPoint;
-    return;
-  }
-
-  Point* childBranch;
-  int d = depth % POINT_DIMENSIONS;*/
-
-  /*If it's an even-depth, we pick our next branch based on the X-coordinate
-   *if it's an odd-depth, we pick our next branch based on the Y-coordinate.
-   *Values less-than will result in going to the left-child subtree, and values
-   *greather-than-or-equal will result in going to the right-child subtree */
-  /*if (newPoint->getCoordinate(d) < parent->getCoordinate(d))
-  {
-    childBranch = parent->getLeftChild();
-    if (childBranch->isNull())
-    {
-      parent->addLeftChild(newPoint);
-      return;
-    }
-  }
-  else
-  {
-    childBranch = parent->getRightChild();
-    if (childBranch->isNull())
-    {
-      parent->addRightChild(newPoint);
-      return;
-    }
-  }
-
-  insertPointIntoTree(childBranch, newPoint, depth + 1);*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
