@@ -26,6 +26,7 @@ public:
   Point** getRightChild();
 
   bool    isNull();
+  bool    isEqual(Point* p);
 
 private:
   void    setParent(Point* point);

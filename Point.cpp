@@ -112,3 +112,9 @@ bool Point::isNull()
 {
   return (this == nullptr);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+bool Point::isEqual(Point* p)
+{
+  return p == this;
+}

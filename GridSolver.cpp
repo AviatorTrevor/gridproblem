@@ -172,7 +172,7 @@ void GridSolver::swap(vector<Point*> &points, int idxA, int idxB)
 void GridSolver::processGridSolution(Point* node)
 {
   mVisitedPoints.insert(node->getId());
-  list<Point*> nearestNeighbors = findNearestNeighbors(node);
+  vector<Point*> nearestNeighbors = findNearestNeighbors(node);
 
   cout << "Visited [" << node->getX() << "," << node->getY() << "]. Neighbors:  "; //TODO: debug, remove
   for (Point* neighbor : nearestNeighbors)
@@ -196,9 +196,9 @@ void GridSolver::processGridSolution(Point* node)
 // "findNearestNeighbors" function, that way you get the right starting
 // parameters for the parent and depth
 ///////////////////////////////////////////////////////////////////////////////
-list<Point*> GridSolver::findNearestNeighbors(Point* &target)
+vector<Point*> GridSolver::findNearestNeighbors(Point* &target)
 {
-  list<Point*> nearestNeighbors;
+  vector<Point*> nearestNeighbors;
   findNearestNeighbors(mTreeRoot, target, 0, nearestNeighbors);
   return nearestNeighbors;
 }
@@ -211,19 +211,17 @@ list<Point*> GridSolver::findNearestNeighbors(Point* &target)
 // If the depth is even-numbered, we compare the X-coordinate to determine
 // if we should go to the left or right child next. Otherwise, we use
 // the Y-coordinate to determine if we should go to the left or right child
-// next. Usually, when we get to the bottom of the tree we will have found
-// our nearest neighbor point, but it's possible that once we get to the
-// bottom node that our sibling or its children might actually be closer,
+// next. When we get to the bottom of the tree we will have found our
+// candidate nearest neighbor point, but it's possible that once we get to
+// the bottom node that our sibling or its children might actually be closer,
 // so we need to check that as well if the vertical or horizontal distance
 // to the parent node is less than the node we currently found as the best
 // match.
 ///////////////////////////////////////////////////////////////////////////////
-void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth, list<Point*> &nearestNeighbors)
+void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth, vector<Point*> &nearestNeighbors)
 {
-  /*if (parent->isNull())
-  {
+  if (parent->isNull())
     return;
-  }
 
   Point* nextBranch;
   Point* siblingBranch;
@@ -231,32 +229,52 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
 
   if (target->getCoordinate(d) < parent->getCoordinate(d))
   {
-    nextBranch = parent->getLeftChild();
-    siblingBranch = parent->getRightChild();
+    nextBranch = *(parent->getLeftChild());
+    siblingBranch = *(parent->getRightChild());
   }
   else
   {
-    nextBranch = parent->getRightChild();
-    siblingBranch = parent->getLeftChild();
-  }*/
+    nextBranch = *(parent->getRightChild());
+    siblingBranch = *(parent->getLeftChild());
+  }
 
-  //findNearestNeighbors(nextBranch, target, depth + 1, nearestNeighbors);
-  //Point* best = closest(temp, parent, target);
+  int d = depth % POINT_DIMENSIONS;
+  findNearestNeighbors(nextBranch, target, depth + 1, nearestNeighbors);
+  if (nearestNeighbors.empty())
+  {
+    nearestNeighbors.push_back(parent);
+  }
+  else
+  {
+    Point* best = closest(nearestNeighbors.back(), parent, target);
+    if (best->isNull())
+    {
+      nearestNeighbors.pop_back();
+    }
+  }
 
   //There's a chance we should traverse the sibling and its children. This is how we check if we should go that way
-  //double distanceToBestSquared = calculateDistanceSquared(best, target);
-  //double distancePrime = (depth % POINT_DIMENSIONS == 0) ? (abs(target->getY() - parent->getY())) : (abs(target->getX() - parent->getX()));
+  double distanceToBestSquared = calculateDistanceSquared(nearestNeighbors.front(), target);
+  double distancePrime = abs(target->getCoordinate(d) - parent->getCoordinate(d));
 
-  //if (distancePrime * distancePrime < distanceToBestSquared)
-  //{
-    //TODOtemp = findNearestNeighbor(siblingBranch, target, depth + 1);
-    //best = closest(temp, best, target);
-  //}
+  /* If the perpendicular line to the sibling branch cutting plane (distancePrime) is <= to our curren best
+   * distance, we should check that sibling branch as well. Because of issues with calculating distances
+   * between 2 points using floating points, there is a chance we have 2 comparisons that are "equal"
+   * as judged by a human, but not equal as judged by the computer because it is slightly off based on
+   * how the number is stored. That's why we add "EPSILON" to the distanceToBestSquared variable (to
+   * allow for a little wiggle room on what we consider "equal") */
+  if (distancePrime * distancePrime <= distanceToBestSquared + EPSILON)
+  {
+    findNearestNeighbors(siblingBranch, target, depth + 1, nearestNeighbors);
+    best = closest(temp, best, target);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// the "distanceToClosest" parameter is pass-by-reference so I don't have to
-// calculate it twice in a row.
+// Determines which point is closest. If it's comparing against itself, we 
+// return the "other" point so as to not include ourselves in the nearest-neighbor
+// search results. If the two points being compared are of equal distance to
+// the target point, then we return a null pointer to signify it was a tie
 ///////////////////////////////////////////////////////////////////////////////
 Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
 {
@@ -266,7 +284,17 @@ Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
   double d0 = calculateDistanceSquared(p0, target);
   double d1 = calculateDistanceSquared(p1, target);
 
-  if (d0 < d1 && d0 > EPSILON) //TODO look at this function
+  /* if we are comparing the target to itself (distance is zero),
+   * then we don't count it as the "best" or "closest" */
+  if (abs(d0) < EPSILON)
+    return p1;
+  else if (abs(d1) < EPSILON)
+    return p0;
+
+  if (abs(d0 - d1) < EPSILON)
+    return nullptr;
+
+  if (d0 < d1) //TODO look at this function
     return p0;
   else
     return p1;
