@@ -29,6 +29,7 @@ private:
   vector<Point*> findNearestNeighbors(Point* &target);
   void           findNearestNeighbors(Point* &parent, Point* &target, int depth, vector<Point*> &nearestNeighbors);
   Point*         closest(Point* &p0, Point* &p1, Point* &target);
+  bool           isTarget(Point* &point, Point* &target);
   double         calculateDistanceSquared(Point* &p0, Point* &p1);
   void           deleteTreeNodes(Point* root);
 

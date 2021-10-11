@@ -238,24 +238,18 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
     siblingBranch = *(parent->getLeftChild());
   }
 
-  int d = depth % POINT_DIMENSIONS;
   findNearestNeighbors(nextBranch, target, depth + 1, nearestNeighbors);
-  if (nearestNeighbors.empty())
-  {
-    nearestNeighbors.push_back(parent);
-  }
-  else
-  {
-    Point* best = closest(nearestNeighbors.back(), parent, target);
-    if (best->isNull())
-    {
-      nearestNeighbors.pop_back();
-    }
-  }
+
+  Point* temp = nullptr;
+  if (!nearestNeighbors.empty())
+    temp = nearestNeighbors.back();
+
+  Point* best = closest(temp, parent, target);
 
   //There's a chance we should traverse the sibling and its children. This is how we check if we should go that way
   double distanceToBestSquared = calculateDistanceSquared(nearestNeighbors.front(), target);
-  double distancePrime = abs(target->getCoordinate(d) - parent->getCoordinate(d));
+  double distancePrimeSquared = abs(target->getCoordinate(d) - parent->getCoordinate(d)); //the next line will make it "squared"
+  distancePrimeSquared *= distancePrimeSquared; //this makes it "squared"
 
   /* If the perpendicular line to the sibling branch cutting plane (distancePrime) is <= to our curren best
    * distance, we should check that sibling branch as well. Because of issues with calculating distances
@@ -263,10 +257,19 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
    * as judged by a human, but not equal as judged by the computer because it is slightly off based on
    * how the number is stored. That's why we add "EPSILON" to the distanceToBestSquared variable (to
    * allow for a little wiggle room on what we consider "equal") */
-  if (distancePrime * distancePrime <= distanceToBestSquared + EPSILON)
+  if (distancePrimeSquared <= distanceToBestSquared + EPSILON)
   {
     findNearestNeighbors(siblingBranch, target, depth + 1, nearestNeighbors);
+    temp = nullptr;
+    if (!nearestNeighbors.empty())
+      temp = nearestNeighbors.back();
     best = closest(temp, best, target);
+  }
+
+  if (!isTarget(best, target))
+  {
+
+    nearestNeighbors.push_back(best);
   }
 }
 
@@ -284,13 +287,6 @@ Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
   double d0 = calculateDistanceSquared(p0, target);
   double d1 = calculateDistanceSquared(p1, target);
 
-  /* if we are comparing the target to itself (distance is zero),
-   * then we don't count it as the "best" or "closest" */
-  if (abs(d0) < EPSILON)
-    return p1;
-  else if (abs(d1) < EPSILON)
-    return p0;
-
   if (abs(d0 - d1) < EPSILON)
     return nullptr;
 
@@ -298,6 +294,15 @@ Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
     return p0;
   else
     return p1;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// We can't add the target as one of the "nearest neighbors", so this checks
+// if the target is the same as a candidate "nearest neighbor"
+///////////////////////////////////////////////////////////////////////////////
+bool GridSolver::isTarget(Point* &point, Point* &target)
+{
+  return point == target;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
