@@ -247,7 +247,7 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
   Point* best = closest(temp, parent, target);
 
   //There's a chance we should traverse the sibling and its children. This is how we check if we should go that way
-  double distanceToBestSquared = calculateDistanceSquared(nearestNeighbors.front(), target);
+  double distanceToBestSquared = calculateDistanceSquared(best, target);
   double distancePrimeSquared = abs(target->getCoordinate(d) - parent->getCoordinate(d)); //the next line will make it "squared"
   distancePrimeSquared *= distancePrimeSquared; //this makes it "squared"
 
@@ -268,8 +268,17 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
 
   if (!isTarget(best, target))
   {
-
-    nearestNeighbors.push_back(best);
+    bool alreadyNearestNeighbor = false;
+    for (unsigned int i = 0; i < nearestNeighbors.size(); i++)
+    {
+      if (nearestNeighbors[i] == best)
+      {
+        alreadyNearestNeighbor = true;
+        break;
+      }
+    }
+    if (!alreadyNearestNeighbor)
+      nearestNeighbors.push_back(best);
   }
 }
 
@@ -287,10 +296,7 @@ Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
   double d0 = calculateDistanceSquared(p0, target);
   double d1 = calculateDistanceSquared(p1, target);
 
-  if (abs(d0 - d1) < EPSILON)
-    return nullptr;
-
-  if (d0 < d1) //TODO look at this function
+  if (d0 < d1)
     return p0;
   else
     return p1;
