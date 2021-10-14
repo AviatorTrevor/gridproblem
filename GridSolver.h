@@ -19,6 +19,13 @@ public:
 
   void printSolution();
 
+  enum Compare
+  {
+    LessThan,
+    Equal,
+    GreaterThan
+  };
+
 private:
   void           processGridFile(string fileName);
   void           buildBalancedKdTree(vector<Point*> &points, Point* &currentNode, int subtreeStartIdx, int subtreeEndIdx, int depth);
@@ -28,8 +35,9 @@ private:
   void           processGridSolution(Point* node);
   vector<Point*> findNearestNeighbors(Point* &target);
   void           findNearestNeighbors(Point* &parent, Point* &target, int depth, vector<Point*> &nearestNeighbors);
-  Point*         closest(Point* &p0, Point* &p1, Point* &target);
+  Compare        compare(Point* &p0, Point* &p1, Point* &target);
   bool           isTarget(Point* &point, Point* &target);
+  Point*         getCandidateBestNearestNeighbor(vector<Point*> &nearestNeighbors);
   double         calculateDistanceSquared(Point* &p0, Point* &p1);
   void           deleteTreeNodes(Point* root);
 

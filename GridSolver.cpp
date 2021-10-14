@@ -238,13 +238,29 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
     siblingBranch = *(parent->getLeftChild());
   }
 
+  bool isEqual;
   findNearestNeighbors(nextBranch, target, depth + 1, nearestNeighbors);
+  Compare comparisonValue = compare(getCandidateBestNearestNeighbor(nearestNeighbors), parent, target);
 
-  Point* temp = nullptr;
-  if (!nearestNeighbors.empty())
-    temp = nearestNeighbors.back();
-
-  Point* best = closest(temp, parent, target);
+  if (best->isNull()) //if the temp and parent are equal in distance to the target...
+  {
+    nearestNeighbors.push_back(parent); //...then add the parent to the list
+    best = parent;
+  }
+  else if (isEqual)
+  {
+    nearestNeighbors.push_back(best);
+  }
+  else if (!isTarget(best, target))
+  {
+    nearestNeighbors.clear();
+    nearestNeighbors.push_back(best);
+  }
+  /* TODO: debug, remove
+     1) you can't be the target to be added to candidate list
+     2) you can't be the same point to be added to the list
+     3) if distance beats distance of item on list, clear list and add new point
+     4) if diestance is "equal" to the item on the list, add it to the list*/
 
   //There's a chance we should traverse the sibling and its children. This is how we check if we should go that way
   double distanceToBestSquared = calculateDistanceSquared(best, target);
@@ -260,41 +276,22 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
   if (distancePrimeSquared <= distanceToBestSquared + EPSILON)
   {
     findNearestNeighbors(siblingBranch, target, depth + 1, nearestNeighbors);
-    temp = nullptr;
-    if (!nearestNeighbors.empty())
-      temp = nearestNeighbors.back();
-    best = closest(temp, best, target);
-  }
-
-  if (!isTarget(best, target))
-  {
-    bool alreadyNearestNeighbor = false;
-    for (unsigned int i = 0; i < nearestNeighbors.size(); i++)
-    {
-      if (nearestNeighbors[i] == best)
-      {
-        alreadyNearestNeighbor = true;
-        break;
-      }
-    }
-    if (!alreadyNearestNeighbor)
-      nearestNeighbors.push_back(best);
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Determines which point is closest. If it's comparing against itself, we 
-// return the "other" point so as to not include ourselves in the nearest-neighbor
-// search results. If the two points being compared are of equal distance to
-// the target point, then we return a null pointer to signify it was a tie
+// TODO: write comments
 ///////////////////////////////////////////////////////////////////////////////
-Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
+GridSolver::Compare GridSolver::compare(Point* &p0, Point* &p1, Point* &target)
 {
   if (p0->isNull()) return p1;
   if (p1->isNull()) return p0;
 
   double d0 = calculateDistanceSquared(p0, target);
   double d1 = calculateDistanceSquared(p1, target);
+
+  if (abs(d0 - d1) < EPSILON)
+    isEqual = true;
 
   if (d0 < d1)
     return p0;
@@ -309,6 +306,14 @@ Point* GridSolver::closest(Point* &p0, Point* &p1, Point* &target)
 bool GridSolver::isTarget(Point* &point, Point* &target)
 {
   return point == target;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Point* GridSolver::getCandidateBestNearestNeighbor(vector<Point*> &nearestNeighbors)
+{
+    if (!nearestNeighbors.empty())
+      return nearestNeighbors.back();
+    return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
