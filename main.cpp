@@ -3,18 +3,21 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char *argv[])
 {
-  //TODO: have the program argument be the text file input
-  GridSolver gridSolver("grid_input.txt");
-  gridSolver.printSolution();
+  if (argc == 2)
+  {
+    GridSolver gridSolver(argv[1]);
+    gridSolver.printSolution();
+  }
+  else
+  {
+    cout << "Please provide a file name as the only command line argument for this program." << endl;
+  }
 
 #ifdef _WIN32
   system("PAUSE");
 #endif
   
-
-  //NOTE: have a hash map for "already-visited" points and do this recursively to expand out until all points have mapped their neighbors
-  //NOTE: alpha angle can only be from 89.99999 to -89.999999
   return 0;
 }

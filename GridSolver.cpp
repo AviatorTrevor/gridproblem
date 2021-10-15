@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <math.h>
 #include "GridSolver.h"
@@ -187,34 +188,28 @@ void GridSolver::processGridSolution()
     mVisitedPoints.insert(node->getId()); //note that we have visited this node
     vector<Point*> nearestNeighbors = findNearestNeighbors(node);
 
-    cout << "Visited [" << node->getX() << "," << node->getY() << "]. Neighbors:  "; //TODO: debug, remove
-    for (Point* neighbor : nearestNeighbors)
-    {
-      cout << "[" << neighbor->getX() << "," << neighbor->getY() << "] (" << calculateAngle(node, neighbor) << "°), "; //TODO: debug, remove
-    }
-    cout << endl; //TODO: debug, remove
     for (Point* neighbor : nearestNeighbors)
     {
       double angle = calculateAngle(node, neighbor);
-      if (angle < -135 && !node->hasLeftNeighbor())
+      if (angle < -135 && angle > -180 && !node->hasLeftNeighbor())
       {
         node->setLeftNeighbor(neighbor);
         neighbor->setRightNeighbor(node);
         nodesToVisit.push_back(neighbor); //add to list of potential neighbors to visit
       }
-      else if (angle < -45 && !node->hasBottomNeighbor())
+      else if (angle < -45 && angle >= -135 && !node->hasBottomNeighbor())
       {
         node->setBottomNeighbor(neighbor);
         neighbor->setTopNeighbor(node);
         nodesToVisit.push_back(neighbor);
       }
-      else if (angle < 45 && !node->hasRightNeighbor())
+      else if (angle < 45 && angle >= -45 && !node->hasRightNeighbor())
       {
         node->setRightNeighbor(neighbor);
         neighbor->setLeftNeighbor(node);
         nodesToVisit.push_back(neighbor);
       }
-      else if (angle < 135 && !node->hasTopNeighbor())
+      else if (angle < 135 && angle >= 45 && !node->hasTopNeighbor())
       {
         node->setTopNeighbor(neighbor);
         neighbor->setBottomNeighbor(node);
@@ -320,7 +315,8 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// TODO: write comments
+// Compares two points to see if one is closer than the other, or if they are
+// close enough to be considered "equal"
 ///////////////////////////////////////////////////////////////////////////////
 GridSolver::Comparison GridSolver::compare(Point* &p0, Point* &p1, Point* &target)
 {
@@ -379,6 +375,8 @@ double GridSolver::calculateAngle(Point* &p0, Point* &p1)
 ///////////////////////////////////////////////////////////////////////////////
 void GridSolver::printSolution()
 {
+  cout << fixed << setprecision(1) << setfill(' ');
+
   int counter = 0;
   Point* startingPoint = mTopLeftPoint;
   Point* currentPoint = mTopLeftPoint;
@@ -387,23 +385,25 @@ void GridSolver::printSolution()
   while (true)
   {
     cout << "Row " << counter << ": ";
-    cout << currentPoint->getX() << currentPoint->getY();
-    if (currentPoint->hasRightNeighbor())
+    cout << setw(5) << currentPoint->getX() << "," << currentPoint->getY();
+    while (currentPoint->hasRightNeighbor())
     {
       cout << " - ";
       currentPoint = currentPoint->getRightNeighbor();
+      cout << setw(5) << currentPoint->getX() << "," << currentPoint->getY();
       continue;
     }
-    else if (startingPoint->hasBottomNeighbor())
+    if (startingPoint->hasBottomNeighbor())
     {
       counter++;
       startingPoint = startingPoint->getBottomNeighbor();
       currentPoint = startingPoint;
+      cout << endl;
       continue;
     }
+    cout << endl;
     break;
   }
-
 
   counter = 0;
   startingPoint = mTopLeftPoint;
@@ -411,21 +411,28 @@ void GridSolver::printSolution()
   //PrintColumns
   while (true)
   {
-    cout << "Column " << counter << ": ";
-    cout << currentPoint->getX() << currentPoint->getY();
-    if (currentPoint->hasBottomNeighbor())
+    cout << "Col " << counter << ": ";
+    cout << setw(5) << currentPoint->getX() << "," << currentPoint->getY();
+    while (currentPoint->hasBottomNeighbor())
     {
       cout << " - ";
       currentPoint = currentPoint->getBottomNeighbor();
+      cout << setw(5) << currentPoint->getX() << "," << currentPoint->getY();
       continue;
     }
-    else if (startingPoint->hasRightNeighbor())
+    if (startingPoint->hasRightNeighbor())
     {
       counter++;
       startingPoint = startingPoint->getRightNeighbor();
       currentPoint = startingPoint;
+      cout << endl;
       continue;
     }
+    cout << endl;
     break;
   }
+
+  //Print Angle
+  Point* temp = mTopLeftPoint->getRightNeighbor();
+  cout << "Angle=" << calculateAngle(mTopLeftPoint, temp) << " degrees" << endl;
 }
