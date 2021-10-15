@@ -18,6 +18,11 @@ public:
   void    setRightNeighbor(Point* point);
   void    setBottomNeighbor(Point* point);
 
+  Point*  getLeftNeighbor()   { return mLeftNeighbor; }
+  Point*  getTopNeighbor()    { return mTopNeighbor; }
+  Point*  getRightNeighbor()  { return mRightNeighbor; }
+  Point*  getBottomNeighbor() { return mBottomNeighbor; }
+
   bool    hasLeftNeighbor();
   bool    hasTopNeighbor();
   bool    hasRightNeighbor();

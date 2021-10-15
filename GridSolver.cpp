@@ -14,7 +14,7 @@ GridSolver::GridSolver(string fileName) :
   mTopLeftPoint(nullptr)
 {
   processGridFile(fileName);
-  processGridSolution(mTreeRoot);
+  processGridSolution();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -171,48 +171,71 @@ void GridSolver::swap(vector<Point*> &points, int idxA, int idxB)
 // neighbor pointers for each point and then noting which point is at the
 // top-left corner of the grid
 ///////////////////////////////////////////////////////////////////////////////
-void GridSolver::processGridSolution(Point* node)
+void GridSolver::processGridSolution()
 {
-  mVisitedPoints.insert(node->getId());
-  vector<Point*> nearestNeighbors = findNearestNeighbors(node);
+  vector<Point*> nodesToVisit;
+  nodesToVisit.push_back(mTreeRoot);
 
-  cout << "Visited [" << node->getX() << "," << node->getY() << "]. Neighbors:  "; //TODO: debug, remove
-  for (Point* neighbor : nearestNeighbors)
+  while (!nodesToVisit.empty())
   {
-    cout << "[" << neighbor->getX() << "," << neighbor->getY() << "] (" << calculateAngle(node, neighbor) << "°), "; //TODO: debug, remove
-  }
-  cout << endl; //TODO: debug, remove
-  for (Point* neighbor : nearestNeighbors)
-  {
-    double angle = calculateAngle(node, neighbor);
-    if (angle < -135 && !node->hasLeftNeighbor())
-    {
-      node->setLeftNeighbor(neighbor);
-      processGridSolution(neighbor);
-    }
-    else if (angle < -45 && !node->hasBottomNeighbor())
-    {
-      node->setBottomNeighbor(neighbor);
-      processGridSolution(neighbor);
-    }
-    else if (angle < 45 && !node->hasRightNeighbor())
-    {
-      node->setRightNeighbor(neighbor);
-      processGridSolution(neighbor);
-    }
-    else if (angle < 135 && !node->hasTopNeighbor())
-    {
-      node->setTopNeighbor(neighbor);
-      processGridSolution(neighbor);
-    }
-    else if (!node->hasLeftNeighbor())
-    {
-      node->setLeftNeighbor(neighbor);
-      processGridSolution(neighbor);
-    }
-  }
+    Point* node = nodesToVisit.back();
+    nodesToVisit.pop_back();
 
-  //TODO calculateAlpha() at the end. Take the mTopLeftNode and it's right-side neighbor
+    if (mVisitedPoints.count(node->getId()) > 0)
+      continue; //node already visited, moving on
+
+    mVisitedPoints.insert(node->getId()); //note that we have visited this node
+    vector<Point*> nearestNeighbors = findNearestNeighbors(node);
+
+    cout << "Visited [" << node->getX() << "," << node->getY() << "]. Neighbors:  "; //TODO: debug, remove
+    for (Point* neighbor : nearestNeighbors)
+    {
+      cout << "[" << neighbor->getX() << "," << neighbor->getY() << "] (" << calculateAngle(node, neighbor) << "°), "; //TODO: debug, remove
+    }
+    cout << endl; //TODO: debug, remove
+    for (Point* neighbor : nearestNeighbors)
+    {
+      double angle = calculateAngle(node, neighbor);
+      if (angle < -135 && !node->hasLeftNeighbor())
+      {
+        node->setLeftNeighbor(neighbor);
+        neighbor->setRightNeighbor(node);
+        nodesToVisit.push_back(neighbor); //add to list of potential neighbors to visit
+      }
+      else if (angle < -45 && !node->hasBottomNeighbor())
+      {
+        node->setBottomNeighbor(neighbor);
+        neighbor->setTopNeighbor(node);
+        nodesToVisit.push_back(neighbor);
+      }
+      else if (angle < 45 && !node->hasRightNeighbor())
+      {
+        node->setRightNeighbor(neighbor);
+        neighbor->setLeftNeighbor(node);
+        nodesToVisit.push_back(neighbor);
+      }
+      else if (angle < 135 && !node->hasTopNeighbor())
+      {
+        node->setTopNeighbor(neighbor);
+        neighbor->setBottomNeighbor(node);
+        nodesToVisit.push_back(neighbor);
+      }
+      else if (angle >= 135 && !node->hasLeftNeighbor())
+      {
+        node->setLeftNeighbor(neighbor);
+        neighbor->setRightNeighbor(node);
+        nodesToVisit.push_back(neighbor);
+      }
+    }
+
+    if (nearestNeighbors.size() == 2) //we found a corner in the grid
+    {
+      if (node->hasRightNeighbor() && node->hasBottomNeighbor()) //if we found the top-left corner
+      {
+        mTopLeftPoint = node;
+      }
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -276,6 +299,9 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
     nearestNeighbors.push_back(parent);
     previousBest = parent;
   }
+
+  if (previousBest == nullptr)
+    return;
 
   //There's a chance we should traverse the sibling and its children. This is how we check if we should go that way
   double distanceToBest = calculateDistance(previousBest, target);
@@ -350,12 +376,56 @@ double GridSolver::calculateAngle(Point* &p0, Point* &p1)
 // 1) All rows in order
 // 2) All columns in order
 // 3) the angle of the grid
-// ...
-// ...
-// ... I will print the rows as I iterate through the grid, and store the
-// column data for printing later.
 ///////////////////////////////////////////////////////////////////////////////
 void GridSolver::printSolution()
 {
-  //TODO
+  int counter = 0;
+  Point* startingPoint = mTopLeftPoint;
+  Point* currentPoint = mTopLeftPoint;
+
+  //Print Rows
+  while (true)
+  {
+    cout << "Row " << counter << ": ";
+    cout << currentPoint->getX() << currentPoint->getY();
+    if (currentPoint->hasRightNeighbor())
+    {
+      cout << " - ";
+      currentPoint = currentPoint->getRightNeighbor();
+      continue;
+    }
+    else if (startingPoint->hasBottomNeighbor())
+    {
+      counter++;
+      startingPoint = startingPoint->getBottomNeighbor();
+      currentPoint = startingPoint;
+      continue;
+    }
+    break;
+  }
+
+
+  counter = 0;
+  startingPoint = mTopLeftPoint;
+  currentPoint = mTopLeftPoint;
+  //PrintColumns
+  while (true)
+  {
+    cout << "Column " << counter << ": ";
+    cout << currentPoint->getX() << currentPoint->getY();
+    if (currentPoint->hasBottomNeighbor())
+    {
+      cout << " - ";
+      currentPoint = currentPoint->getBottomNeighbor();
+      continue;
+    }
+    else if (startingPoint->hasRightNeighbor())
+    {
+      counter++;
+      startingPoint = startingPoint->getRightNeighbor();
+      currentPoint = startingPoint;
+      continue;
+    }
+    break;
+  }
 }

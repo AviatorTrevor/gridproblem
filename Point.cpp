@@ -45,28 +45,24 @@ int Point::getId()
 void Point::setLeftNeighbor(Point* point)
 {
   mLeftNeighbor = point;
-  point->setRightNeighbor(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Point::setTopNeighbor(Point* point)
 {
   mTopNeighbor = point;
-  point->setBottomNeighbor(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Point::setRightNeighbor(Point* point)
 {
   mRightNeighbor = point;
-  point->setLeftNeighbor(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Point::setBottomNeighbor(Point* point)
 {
   mBottomNeighbor = point;
-  point->setTopNeighbor(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
