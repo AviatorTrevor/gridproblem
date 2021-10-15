@@ -4,6 +4,8 @@
 #include "GridSolver.h"
 #include "Point.h"
 
+#define PI 3.141592653589793
+
 using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -177,13 +179,35 @@ void GridSolver::processGridSolution(Point* node)
   cout << "Visited [" << node->getX() << "," << node->getY() << "]. Neighbors:  "; //TODO: debug, remove
   for (Point* neighbor : nearestNeighbors)
   {
-    cout << "[" << neighbor->getX() << "," << neighbor->getY() << "], "; //TODO: debug, remove
+    cout << "[" << neighbor->getX() << "," << neighbor->getY() << "] (" << calculateAngle(node, neighbor) << "°), "; //TODO: debug, remove
   }
   cout << endl; //TODO: debug, remove
   for (Point* neighbor : nearestNeighbors)
   {
-    if (mVisitedPoints.count(neighbor->getId()) == 0)
+    double angle = calculateAngle(node, neighbor);
+    if (angle < -135 && !node->hasLeftNeighbor())
     {
+      node->setLeftNeighbor(neighbor);
+      processGridSolution(neighbor);
+    }
+    else if (angle < -45 && !node->hasBottomNeighbor())
+    {
+      node->setBottomNeighbor(neighbor);
+      processGridSolution(neighbor);
+    }
+    else if (angle < 45 && !node->hasRightNeighbor())
+    {
+      node->setRightNeighbor(neighbor);
+      processGridSolution(neighbor);
+    }
+    else if (angle < 135 && !node->hasTopNeighbor())
+    {
+      node->setTopNeighbor(neighbor);
+      processGridSolution(neighbor);
+    }
+    else if (!node->hasLeftNeighbor())
+    {
+      node->setLeftNeighbor(neighbor);
       processGridSolution(neighbor);
     }
   }
@@ -238,34 +262,24 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
     siblingBranch = *(parent->getLeftChild());
   }
 
-  bool isEqual;
   findNearestNeighbors(nextBranch, target, depth + 1, nearestNeighbors);
-  Compare comparisonValue = compare(getCandidateBestNearestNeighbor(nearestNeighbors), parent, target);
+  Point* previousBest = getCandidateBestNearestNeighbor(nearestNeighbors);
+  Comparison comparisonValue = compare(previousBest, parent, target);
 
-  if (best->isNull()) //if the temp and parent are equal in distance to the target...
+  if (comparisonValue == ComparisonEqual) //if the temp and parent are equal in distance to the target...
   {
     nearestNeighbors.push_back(parent); //...then add the parent to the list
-    best = parent;
   }
-  else if (isEqual)
-  {
-    nearestNeighbors.push_back(best);
-  }
-  else if (!isTarget(best, target))
+  else if (comparisonValue == ComparisonGreaterThan && parent != target)
   {
     nearestNeighbors.clear();
-    nearestNeighbors.push_back(best);
+    nearestNeighbors.push_back(parent);
+    previousBest = parent;
   }
-  /* TODO: debug, remove
-     1) you can't be the target to be added to candidate list
-     2) you can't be the same point to be added to the list
-     3) if distance beats distance of item on list, clear list and add new point
-     4) if diestance is "equal" to the item on the list, add it to the list*/
 
   //There's a chance we should traverse the sibling and its children. This is how we check if we should go that way
-  double distanceToBestSquared = calculateDistanceSquared(best, target);
-  double distancePrimeSquared = abs(target->getCoordinate(d) - parent->getCoordinate(d)); //the next line will make it "squared"
-  distancePrimeSquared *= distancePrimeSquared; //this makes it "squared"
+  double distanceToBest = calculateDistance(previousBest, target);
+  double distancePrime = abs(target->getCoordinate(d) - parent->getCoordinate(d));
 
   /* If the perpendicular line to the sibling branch cutting plane (distancePrime) is <= to our curren best
    * distance, we should check that sibling branch as well. Because of issues with calculating distances
@@ -273,7 +287,7 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
    * as judged by a human, but not equal as judged by the computer because it is slightly off based on
    * how the number is stored. That's why we add "EPSILON" to the distanceToBestSquared variable (to
    * allow for a little wiggle room on what we consider "equal") */
-  if (distancePrimeSquared <= distanceToBestSquared + EPSILON)
+  if (distancePrime <= distanceToBest + EPSILON)
   {
     findNearestNeighbors(siblingBranch, target, depth + 1, nearestNeighbors);
   }
@@ -282,30 +296,21 @@ void GridSolver::findNearestNeighbors(Point* &parent, Point* &target, int depth,
 ///////////////////////////////////////////////////////////////////////////////
 // TODO: write comments
 ///////////////////////////////////////////////////////////////////////////////
-GridSolver::Compare GridSolver::compare(Point* &p0, Point* &p1, Point* &target)
+GridSolver::Comparison GridSolver::compare(Point* &p0, Point* &p1, Point* &target)
 {
-  if (p0->isNull()) return p1;
-  if (p1->isNull()) return p0;
+  if (p0->isNull()) return ComparisonGreaterThan;
+  if (p1->isNull()) return ComparisonLessThan;
 
-  double d0 = calculateDistanceSquared(p0, target);
-  double d1 = calculateDistanceSquared(p1, target);
+  double d0 = calculateDistance(p0, target);
+  double d1 = calculateDistance(p1, target);
 
   if (abs(d0 - d1) < EPSILON)
-    isEqual = true;
+    return ComparisonEqual;
 
   if (d0 < d1)
-    return p0;
+    return ComparisonLessThan;
   else
-    return p1;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// We can't add the target as one of the "nearest neighbors", so this checks
-// if the target is the same as a candidate "nearest neighbor"
-///////////////////////////////////////////////////////////////////////////////
-bool GridSolver::isTarget(Point* &point, Point* &target)
-{
-  return point == target;
+    return ComparisonGreaterThan;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -327,11 +332,17 @@ Point* GridSolver::getCandidateBestNearestNeighbor(vector<Point*> &nearestNeighb
 //
 // This function should always return a positive value.
 ///////////////////////////////////////////////////////////////////////////////
-double GridSolver::calculateDistanceSquared(Point* &p0, Point* &p1)
+double GridSolver::calculateDistance(Point* &p0, Point* &p1)
 {
   double xDistance = p0->getX() - p1->getX();
   double yDistance = p0->getY() - p1->getY();
-  return pow(xDistance, 2) + pow(yDistance, 2);
+  return sqrt(pow(xDistance, 2) + pow(yDistance, 2));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+double GridSolver::calculateAngle(Point* &p0, Point* &p1)
+{
+  return (atan2(p1->getY() - p0->getY(), p1->getX() - p0->getX()) * 180 / PI);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

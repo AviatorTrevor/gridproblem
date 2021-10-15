@@ -7,7 +7,7 @@
 #include <vector>
 #include "Point.h"
 
-#define EPSILON 0.01
+#define EPSILON 0.12
 
 using namespace std;
 
@@ -19,11 +19,11 @@ public:
 
   void printSolution();
 
-  enum Compare
+  enum Comparison
   {
-    LessThan,
-    Equal,
-    GreaterThan
+    ComparisonLessThan,
+    ComparisonEqual,
+    ComparisonGreaterThan
   };
 
 private:
@@ -35,10 +35,10 @@ private:
   void           processGridSolution(Point* node);
   vector<Point*> findNearestNeighbors(Point* &target);
   void           findNearestNeighbors(Point* &parent, Point* &target, int depth, vector<Point*> &nearestNeighbors);
-  Compare        compare(Point* &p0, Point* &p1, Point* &target);
-  bool           isTarget(Point* &point, Point* &target);
+  Comparison     compare(Point* &p0, Point* &p1, Point* &target);
   Point*         getCandidateBestNearestNeighbor(vector<Point*> &nearestNeighbors);
-  double         calculateDistanceSquared(Point* &p0, Point* &p1);
+  double         calculateDistance(Point* &p0, Point* &p1);
+  double         calculateAngle(Point* &p0, Point* &p1);
   void           deleteTreeNodes(Point* root);
 
   Point*             mTreeRoot;
